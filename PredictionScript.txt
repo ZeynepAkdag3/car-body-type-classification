@@ -1,0 +1,90 @@
+!pip install tensorflow numpy pillow
+
+import os
+import json
+import numpy as np
+from PIL import Image
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array
+
+def Predict(file_path):
+    # Model ve JSON dosyalarının script ile aynı dizinde olması istenmiştir
+    model_path = "car_classification_model.h5"
+    json_path = "class_mapping.json"
+    
+    try:
+        # Modeli ve Sınıf Haritasını Yükle
+        model = load_model(model_path)
+        
+        with open(json_path, 'r') as f:
+            class_mapping = json.load(f)
+        class_labels = {int(k): v.upper() for k, v in class_mapping.items()}
+        
+    except Exception as e:
+        print(f"Model veya JSON yükleme hatası: {e}")
+        return
+
+    # Kılavuzdaki Sınıf Numaraları (1-8 arası)
+    hoca_numaralandirmasi = {
+        "SUV": 1,
+        "VAN": 2,
+        "STATION_WAGON": 3,
+        "MICRO": 4,
+        "OPEN_WHEEL": 5,
+        "SEDAN": 6,
+        "HATCHBACK": 7,
+        "PICKUP": 8
+    }
+
+    image_names = []
+    preds = []
+
+    # testdata klasörünün içerisindeki 1'den 8'e kadar olan alt klasörleri gez
+    for class_folder in range(1, 9):
+        folder_path = os.path.join(file_path, str(class_folder))
+        
+        if not os.path.exists(folder_path):
+            continue
+
+        for file in os.listdir(folder_path):
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                img_path = os.path.join(folder_path, file)
+                
+                try:
+                    # Görüntüyü hazırlama süreci
+                    image = Image.open(img_path)
+                    if image.mode != "RGB":
+                        image = image.convert("RGB")
+                    
+                    image = image.resize((224, 224))
+                    image_array = img_to_array(image)
+                    image_array = np.expand_dims(image_array, axis=0)
+                    
+                    # Tahmin yapma
+                    predictions = model.predict(image_array, verbose=0)
+                    predicted_index = np.argmax(predictions[0])
+                    
+                    bulunan_sinif_metni = class_labels[predicted_index]
+                    
+                    # Güvenlik eşleştirmeleri (Olası metin farklılıklarına karşı)
+                    if "STATION" in bulunan_sinif_metni:
+                        bulunan_sinif_metni = "STATION_WAGON"
+                    elif "OPEN" in bulunan_sinif_metni or "TEKERLEK" in bulunan_sinif_metni:
+                        bulunan_sinif_metni = "OPEN_WHEEL"
+                    elif "PICK" in bulunan_sinif_metni:
+                        bulunan_sinif_metni = "PICKUP"
+                        
+                    predicted_class = hoca_numaralandirmasi.get(bulunan_sinif_metni, 0)
+                    
+                    image_names.append(file)
+                    preds.append(predicted_class)
+                except Exception as e:
+                    print(f"{file} okunamadı: {e}")
+
+    # Sonuçları Preds.txt dosyasına yaz (Hocaların istediği dosya formatı ve yolu)
+    filename = "Preds.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        for i in range(len(preds)):
+            line = f"{image_names[i]} | Pred: {preds[i]} "
+            print(line)
+            f.write(line + "\n")

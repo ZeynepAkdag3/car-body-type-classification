@@ -1,0 +1,33 @@
+# Sanal ortamlar (herkes kendi bilgisayarında yeniden kurar)
+.venv/
+.venv-1/
+venv/
+
+# Veri seti (çok büyük; kaynakları README'de)
+dataset/
+
+# Python geçici dosyaları
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Eski/hatalı eğitimden kalan metrik dosyası ve eski grafikler
+reports/metrics.json
+reports/training_history.png
+reports/confusion_matrix.png
+
+# Rapor taslağı (bitmiş PDF eklenebilir)
+reports/rapor_template.tex
+
+# Artık kullanılmayan deneme scriptleri (sentetik veri üretici vb.)
+src/create_sample_dataset.py
+src/download_sample_data.py
+
+# Eğitim sırasında oluşan ek model kopyası
+models/best_model.h5
+
+# İşletim sistemi / editör
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
